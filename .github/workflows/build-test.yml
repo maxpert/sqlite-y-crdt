@@ -1,8 +1,8 @@
 name: Build Test
 
 on:
-  workflow_run:
-    branches: ["master"]
+  workflow_dispatch:
+    inputs: {}
 
 env:
   CARGO_TERM_COLOR: always
