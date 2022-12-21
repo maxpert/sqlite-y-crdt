@@ -1,0 +1,16 @@
+[package]
+name = "sqlite-y-crdt"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+sqlite-loadable = "0.0.3"
+yrs = "0.14.0"
+serde_json = "1.0.89"
+lib0 = "0.14.1"
+rand = "0.8.5"
+
+[lib]
+crate-type=["cdylib"]
