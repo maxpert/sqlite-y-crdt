@@ -9,7 +9,7 @@ edition = "2021"
 sqlite-loadable = "0.0.3"
 yrs = "0.14.0"
 serde_json = "1.0.89"
-lib0 = "0.14.1"
+lib0 = "0.14.0"
 rand = "0.8.5"
 
 [lib]
