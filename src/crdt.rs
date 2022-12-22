@@ -20,7 +20,7 @@ pub fn decode_update(blob: &[u8], version: i32) -> Result<Update, Error> {
     }
 }
 
-pub fn encode(upd: &impl Encode, version: i32) -> Result<Vec<u8>, lib0::error::Error> {
+pub fn encode(upd: &impl Encode, version: i32) -> Result<Vec<u8>, Error> {
     match version {
         1 =>  Ok(upd.encode_v1()),
         2 =>  Ok(upd.encode_v2()),
