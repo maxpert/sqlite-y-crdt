@@ -48,9 +48,9 @@ pub fn ydoc_to_json(context: *mut sqlite3_context, values: &[*mut sqlite3_value]
     let doc = create_doc_with_id();
     let mut tx = doc.transact_mut();
     tx.apply_update(upd);
+    tx.commit();
 
     let json = doc.to_json(&tx);
-
     api::result_text(context, json.to_string())?;
     Ok(())
 }

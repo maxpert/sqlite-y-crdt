@@ -1,0 +1,15 @@
+{
+  "name": "test-harness",
+  "version": "1.0.0",
+  "description": "Testing harness for YDoc integration via Node",
+  "scripts": {
+    "test": "mocha test.js"
+  },
+  "author": "Zohaib Sibte Hassan",
+  "license": "MIT",
+  "dependencies": {
+    "better-sqlite3": "^8.0.1",
+    "mocha": "^10.2.0",
+    "yjs": "^13.5.43"
+  }
+}
