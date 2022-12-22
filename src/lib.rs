@@ -1,14 +1,15 @@
-mod crdt;
-mod util;
+use std::sync::atomic::Ordering;
 
-use std::sync::atomic::{Ordering};
 use rand::Rng;
-
 use sqlite_loadable::{api, define_scalar_function, prelude::*, Result as SQLiteResult};
 use yrs::{self, ReadTxn, Transact};
+use yrs::types::ToJson;
+
 use crate::crdt::*;
 use crate::util::to_sqlite_error;
 
+mod crdt;
+mod util;
 
 pub fn create_ydoc(context: *mut sqlite3_context, values: &[*mut sqlite3_value]) -> SQLiteResult<()> {
     let ver = api::value_int(values.get(0).ok_or("Version parameter is missing")?);
@@ -24,7 +25,7 @@ pub fn create_ydoc(context: *mut sqlite3_context, values: &[*mut sqlite3_value])
     Ok(())
 }
 
-pub fn ydoc_client_id(context: *mut sqlite3_context, values: &[*mut sqlite3_value]) -> SQLiteResult<()>  {
+pub fn ydoc_client_id(context: *mut sqlite3_context, values: &[*mut sqlite3_value]) -> SQLiteResult<()> {
     let old_id = if values.len() >= 1 {
         let id_val = values.get(0).ok_or("ID must be passed as first parameter")?;
         ID.swap(api::value_int64(id_val) as u64, Ordering::SeqCst)
@@ -36,19 +37,37 @@ pub fn ydoc_client_id(context: *mut sqlite3_context, values: &[*mut sqlite3_valu
     Ok(())
 }
 
-pub fn ydoc_merge_update(context: *mut sqlite3_context, values: &[*mut sqlite3_value]) -> SQLiteResult<()>  {
+pub fn ydoc_to_json(context: *mut sqlite3_context, values: &[*mut sqlite3_value]) -> SQLiteResult<()> {
+    let ver = api::value_int(values.get(1).ok_or("Version parameter is missing")?);
+    let payload = values.get(0).ok_or("Target document parameter missing")?;
+    let upd = decode_update(
+        api::value_blob(payload),
+        ver,
+    ).map_err(to_sqlite_error)?;
+
+    let doc = create_doc_with_id();
+    let mut tx = doc.transact_mut();
+    tx.apply_update(upd);
+
+    let json = doc.to_json(&tx);
+
+    api::result_text(context, json.to_string())?;
+    Ok(())
+}
+
+pub fn ydoc_merge_update(context: *mut sqlite3_context, values: &[*mut sqlite3_value]) -> SQLiteResult<()> {
     let ver = api::value_int(values.get(2).ok_or("Version parameter is missing")?);
     let ser = {
         let l_doc = values.get(0).ok_or("Target document parameter missing")?;
         let mut left = decode_update(
             api::value_blob(l_doc),
-            ver
+            ver,
         ).map_err(to_sqlite_error)?;
 
         let r_doc = values.get(1).ok_or("Source document parameter missing")?;
         let right = decode_update(
             api::value_blob(r_doc),
-            ver
+            ver,
         ).map_err(to_sqlite_error)?;
 
         left.merge(right);
@@ -66,6 +85,7 @@ pub fn sqlite3_sqliteycrdt_init(db: *mut sqlite3) -> SQLiteResult<()> {
 
     define_scalar_function(db, "ydoc", 1, create_ydoc, FunctionFlags::UTF8 | FunctionFlags::DETERMINISTIC)?;
     define_scalar_function(db, "ydoc_merge_update", 3, ydoc_merge_update, FunctionFlags::UTF8 | FunctionFlags::DETERMINISTIC)?;
+    define_scalar_function(db, "ydoc_to_json", 2, ydoc_to_json, FunctionFlags::UTF8 | FunctionFlags::DETERMINISTIC)?;
     define_scalar_function(db, "ydoc_client_id", -1, ydoc_client_id, FunctionFlags::UTF8)?;
     Ok(())
 }
@@ -73,6 +93,7 @@ pub fn sqlite3_sqliteycrdt_init(db: *mut sqlite3) -> SQLiteResult<()> {
 #[cfg(test)]
 mod test {
     use std::sync::atomic::Ordering;
+
     use crate::{create_doc_with_id, ID};
 
     #[test]
