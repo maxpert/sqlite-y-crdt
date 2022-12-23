@@ -53,6 +53,19 @@ describe('YCRDT functions v1', () => {
         assert(read_doc.getMap('map').get('test') === doc.getMap('map').get('test'));
     });
 
+    it('Bad version fails gracefully for v2', () => {
+        const doc = new Y.Doc();
+        doc.getMap('map').set('test', 'Lorem Ipsum');
+
+        try {
+            db.prepare('SELECT ydoc_merge_update(ydoc(2), ?, 2) as yd').get(
+                Y.encodeStateAsUpdate(doc)
+            );
+            assert(false);
+        } catch (e) {
+        }
+    });
+
     it('should merge stored value with document updates', () => {
         let doc = new Y.Doc();
         doc.getMap('map').set('test1', 'A');
